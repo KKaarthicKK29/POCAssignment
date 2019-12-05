@@ -26,6 +26,10 @@ import com.example.karthickmadasamy.myapplication.presenter.MainViewInterface;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
+//Added SwipeRefresh action to this class
+import android.support.v4.widget.SwipeRefreshLayout;
+
+
 
 /**
  * Its our main fragment which renders UI
@@ -47,6 +51,9 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     @BindView(R.id.toolbar)
     Toolbar toolbar;
 
+    @BindView(R.id.swipeToRefresh)
+    SwipeRefreshLayout mSwipeRefreshLayout;
+
 
     FeederAdapter adapter;
     MainPresenter mainPresenter;
@@ -64,6 +71,7 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView");
+        setHasOptionsMenu(true);
         View view=inflater.inflate(R.layout.feeder_fragment,container,false);
         ButterKnife.bind(this,view);
         initView();
@@ -77,8 +85,18 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
         Log.d(TAG, "initView");
         initMVP();
         ((AppCompatActivity)getActivity()).setSupportActionBar(toolbar);
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorAccent);
         newsView.setLayoutManager(new LinearLayoutManager(getActivity()));
         getFeederList();
+
+        //SwipeRefresh function
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                getFeederList();
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        });
 
     }
 
@@ -150,11 +168,16 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-
+        menu.clear();
+        inflater.inflate(R.menu.menu, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if(id == R.id.refresh){
+            getFeederList();
+        }
         return super.onOptionsItemSelected(item);
     }
 }
