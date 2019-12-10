@@ -2,7 +2,6 @@ package com.example.karthickmadasamy.myapplication.adapters;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +11,7 @@ import com.example.karthickmadasamy.myapplication.R;
 import com.example.karthickmadasamy.myapplication.models.Rows;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.example.karthickmadasamy.myapplication.sqlite.DBRowModel;
 import com.example.karthickmadasamy.myapplication.utils.SquareImageView;
 
 import java.util.List;
@@ -22,10 +22,10 @@ import java.util.List;
 
 public class FeederAdapter extends RecyclerView.Adapter<FeederAdapter.FeederHolder> {
     private String TAG=FeederAdapter.this.getClass().getName();
-    private List<Rows> rowsList;
+    private List<DBRowModel> rowsList;
     private Context context;
     OnItemClickListener onItemClickListener;
-    public FeederAdapter(List<Rows> rowsList, Context context, OnItemClickListener onItemClickListener) {
+    public FeederAdapter(List<DBRowModel> rowsList, Context context, OnItemClickListener onItemClickListener) {
         this.rowsList = rowsList;
         this.context = context;
         this.onItemClickListener=onItemClickListener;
@@ -56,7 +56,7 @@ public class FeederAdapter extends RecyclerView.Adapter<FeederAdapter.FeederHold
     }
 
     public interface OnItemClickListener {
-        void onClick(Rows rows);
+        void onClick(DBRowModel rows);
     }
 
     public class FeederHolder extends RecyclerView.ViewHolder {
@@ -68,7 +68,7 @@ public class FeederAdapter extends RecyclerView.Adapter<FeederAdapter.FeederHold
             tvDescription = v.findViewById(R.id.tv_description);
             imageViewFeeder = v.findViewById(R.id.imageView_Feeder);
         }
-        public void click(final Rows rows, final OnItemClickListener onItemClickListener) {
+        public void click(final DBRowModel rows, final OnItemClickListener onItemClickListener) {
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

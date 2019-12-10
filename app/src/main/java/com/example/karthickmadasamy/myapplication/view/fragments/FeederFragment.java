@@ -22,6 +22,10 @@ import com.example.karthickmadasamy.myapplication.models.FeederModel;
 import com.example.karthickmadasamy.myapplication.models.Rows;
 import com.example.karthickmadasamy.myapplication.presenter.MainPresenter;
 import com.example.karthickmadasamy.myapplication.presenter.MainViewInterface;
+import com.example.karthickmadasamy.myapplication.sqlite.DBHandler;
+import com.example.karthickmadasamy.myapplication.sqlite.DBModel;
+import com.example.karthickmadasamy.myapplication.sqlite.DBRowModel;
+import com.google.gson.Gson;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -29,6 +33,8 @@ import butterknife.ButterKnife;
 //Added SwipeRefresh action to this class
 import android.support.v4.widget.SwipeRefreshLayout;
 
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -57,37 +63,71 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
 
     FeederAdapter adapter;
     MainPresenter mainPresenter;
+    private List<Rows> mRowsList;
+    DBHandler dbHandler;
+
     public static FeederFragment newInstance(){
         return new FeederFragment();
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setRetainInstance(true);
-    }
+    public void onCreate(Bundle savedInstanceState) {
+          super.onCreate(savedInstanceState);
+             Log.v(TAG, "Feeder:In frag's on create");
+             setRetainInstance(true);
+        }
+
+
+
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
-        Log.d(TAG, "onCreateView");
+        Log.d(TAG, "Feeder:onCreateView");
         setHasOptionsMenu(true);
+        setRetainInstance(true);
+        dbHandler = new DBHandler(getActivity());
         View view=inflater.inflate(R.layout.feeder_fragment,container,false);
         ButterKnife.bind(this,view);
-        initView();
+        mRowsList = new ArrayList<Rows>();
+        if(savedInstanceState == null){
+            initView();
+        }
+
         return view;
+    }
+
+
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        setRetainInstance(true);
+        if (savedInstanceState != null) {
+            //Restore the fragment's state here
+            Log.d(TAG, "Feeder:onActivityCreated");
+        }
     }
 
     /**
      * initialize view
      */
     private void initView(){
-        Log.d(TAG, "initView");
+        Log.d(TAG, "Feeder:initView");
         initMVP();
+        if(null != dbHandler && dbHandler.getRowCount() > 0) {
+            displayDBFeeders(true);
+            hideProgressBar();
+
+        }else {
+            getFeederList();
+
+        }
+
         ((AppCompatActivity)getActivity()).setSupportActionBar(toolbar);
         mSwipeRefreshLayout.setColorSchemeResources(R.color.colorAccent);
         newsView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        getFeederList();
+
 
         //SwipeRefresh function
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -104,7 +144,7 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
      * initialize Model View Presenter
      */
     private void initMVP() {
-        mainPresenter = new MainPresenter(this);
+        mainPresenter = new MainPresenter(this,getActivity());
     }
 
     /**
@@ -140,22 +180,29 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
         progressBar.setVisibility(View.GONE);
     }
 
+    public void displayDBFeeders(boolean refreshUI) {
+        List<DBRowModel> feederRows = dbHandler.getAllFeederRows();
+        toolbar.setTitle(dbHandler.getToolBarTitle());
+        adapter = new FeederAdapter(feederRows, getActivity(), new FeederAdapter.OnItemClickListener() {
+            @Override
+            public void onClick(DBRowModel rows) {
+                showToast(rows.getTitle());
+            }
+        });
+        newsView.setAdapter(adapter);
+
+        if(refreshUI) {
+            getFeederList();
+        }
+
+    }
+
     @Override
     public void displayFeeder(FeederModel feederModel) {
-        if(feederModel !=null) {
-            //Log.d(TAG, feederModel.getFeederList().get(1).getTitle());
-            toolbar.setTitle(feederModel.getTitle());
-            adapter = new FeederAdapter(feederModel.getRows(), getActivity(), new FeederAdapter.OnItemClickListener() {
-                @Override
-                public void onClick(Rows rows) {
-                    showToast(rows.getTitle());
-                }
-            });
-            newsView.setAdapter(adapter);
-
-        }else{
-            Log.d(TAG,"NewsResponse response empty");
-        }    }
+        if(null != feederModel) {
+            displayDBFeeders(false);
+        }
+    }
 
     @Override
     public void displayError(String e) {

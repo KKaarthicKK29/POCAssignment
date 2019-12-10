@@ -1,12 +1,19 @@
 package com.example.karthickmadasamy.myapplication.presenter;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.example.karthickmadasamy.myapplication.R;
 import com.example.karthickmadasamy.myapplication.models.FeederModel;
+import com.example.karthickmadasamy.myapplication.models.Rows;
 import com.example.karthickmadasamy.myapplication.network.NetworkClient;
 import com.example.karthickmadasamy.myapplication.network.NetworkInterface;
+import com.example.karthickmadasamy.myapplication.sqlite.DBHandler;
+import com.example.karthickmadasamy.myapplication.sqlite.DBModel;
 
+
+import java.util.ArrayList;
+import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -25,9 +32,11 @@ import io.reactivex.schedulers.Schedulers;
 public class MainPresenter implements MainPresenterInterface {
     private String TAG = MainPresenter.this.getClass().getName();
     private MainViewInterface mvi;
+    public Context ctx;
 
-    public MainPresenter(MainViewInterface mvi) {
+    public MainPresenter(MainViewInterface mvi,Context ctx) {
         this.mvi = mvi;
+        this.ctx = ctx;
     }
 
     @Override
@@ -42,12 +51,16 @@ public class MainPresenter implements MainPresenterInterface {
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
+
     public DisposableObserver<FeederModel> getObserver(){
         return new DisposableObserver<FeederModel>() {
 
             @Override
             public void onNext(@NonNull FeederModel feederModel) {
                 Log.d(TAG,"OnNext"+ feederModel.getRows());
+                //DB insert
+                DBHandler db = new DBHandler(ctx);
+                db.insertOrUpdateFeederRows(new DBModel(feederModel.getRows(),feederModel.getTitle()));
                 mvi.displayFeeder(feederModel);
             }
 
