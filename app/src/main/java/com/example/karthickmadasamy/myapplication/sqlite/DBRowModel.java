@@ -1,5 +1,8 @@
 package com.example.karthickmadasamy.myapplication.sqlite;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -7,7 +10,7 @@ import com.google.gson.annotations.SerializedName;
  * Created by Karthick.Madasamy on 12/9/2019.
  */
 
-public class DBRowModel {
+public class DBRowModel implements Parcelable{
     @SerializedName("title")
     @Expose
     private String title;
@@ -15,6 +18,28 @@ public class DBRowModel {
     @SerializedName("description")
     @Expose
     private String description;
+
+    protected DBRowModel(Parcel in) {
+        title = in.readString();
+        description = in.readString();
+        imageHref = in.readString();
+    }
+
+    public static final Creator<DBRowModel> CREATOR = new Creator<DBRowModel>() {
+        @Override
+        public DBRowModel createFromParcel(Parcel in) {
+            return new DBRowModel(in);
+        }
+
+        @Override
+        public DBRowModel[] newArray(int size) {
+            return new DBRowModel[size];
+        }
+    };
+
+    public DBRowModel() {
+
+    }
 
     public void setImageHref(String imageHref) {
         this.imageHref = imageHref;
@@ -44,6 +69,18 @@ public class DBRowModel {
         return imageHref;
     }
 
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeStringArray(new String[] {this.title,
+                this.description,
+                this.imageHref});
+
+    }
 }
 
 

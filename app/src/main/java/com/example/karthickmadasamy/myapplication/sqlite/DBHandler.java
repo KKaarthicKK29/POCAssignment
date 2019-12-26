@@ -5,18 +5,16 @@ package com.example.karthickmadasamy.myapplication.sqlite;
  */
 
 
+        import android.annotation.SuppressLint;
         import android.content.ContentValues;
         import android.content.Context;
         import android.database.Cursor;
         import android.database.sqlite.SQLiteDatabase;
         import android.database.sqlite.SQLiteOpenHelper;
-        import android.inputmethodservice.Keyboard;
+        import android.os.AsyncTask;
         import android.util.Log;
-
         import com.example.karthickmadasamy.myapplication.models.Rows;
-
         import java.util.ArrayList;
-        import java.util.List;
 
 public class DBHandler extends SQLiteOpenHelper {
 
@@ -41,9 +39,17 @@ public class DBHandler extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSI);
     }*/
 
-    public DBHandler(Context context) {
+    private static DBHandler instance;
+    public static synchronized DBHandler getInstance(Context context){
+        if(instance== null){
+            instance = new DBHandler(context);
+        }
+        return instance;
+    }
+    private DBHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
+
 
 
 
@@ -66,131 +72,49 @@ public class DBHandler extends SQLiteOpenHelper {
     }
 
     public void insertOrUpdateFeederRows(DBModel feederModel) {
-        boolean isAdded = false;
-        SQLiteDatabase db = this.getWritableDatabase();
+        new AsyncTask<DBHandler, Void, Void>() {
+            @Override
+            protected Void doInBackground(final DBHandler... params) {
+                boolean isAdded = false;
+                SQLiteDatabase db = params[0].getWritableDatabase();
 
-        ContentValues values = new ContentValues();
-        for (Rows dbRowModel : feederModel.getFeederModel()) {
-            values.put(KEY_MAIN_TITLE, feederModel.getTitle());
-            if(dbRowModel.getTitle() == null){
-                dbRowModel.setTitle("Title");
-            }
-
-
-            Cursor c = db.rawQuery("SELECT * FROM feeders WHERE feeder_title = '" + dbRowModel.getTitle() + "'", null);
-            c.moveToFirst();
-
-            if (c.getCount() == 0) {
-                isAdded = false;
-
-            } else {
-                isAdded = true;
-            }
-
-            values.put(KEY_TITLE, dbRowModel.getTitle()); //  Row Title
-            values.put(KEY_DESCRIPTION, dbRowModel.getDescription()); //  Row Description
-            values.put(KEY_IMAGE, dbRowModel.getImageHref());
-            if (!isAdded) {
-                db.insert(TABLE_FEEDER, null, values);
-
-            } else {
-                db.update(TABLE_FEEDER, values, KEY_TITLE + " = ?",
-                        new String[]{dbRowModel.getTitle()});
-
-
-            }
-        }
-    }
-
-    // Adding new feeder
-    public void addFeeder(DBModel feederModel) {
-
-
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        for(Rows dbRowModel: feederModel.getFeederModel()){
-            values.put(KEY_MAIN_TITLE, feederModel.getTitle());
-
-            Cursor c = db.rawQuery("SELECT * FROM feeders WHERE feeder_title = '"+dbRowModel.getTitle()+"'", null);
-
-            if(c.moveToFirst())
-
-            // Feeder Main Title
-            values.put(KEY_TITLE, dbRowModel.getTitle()); //  Row Title
-            values.put(KEY_DESCRIPTION, dbRowModel.getDescription()); //  Row Description
-            values.put(KEY_IMAGE, dbRowModel.getImageHref()); //  Row Image
-            db.insert(TABLE_FEEDER, null, values);
-
-        }
-
-        // Inserting Row
-        db.close(); // Closing database connection
-    }
-
-    // Updating feeder
-    public void updateFeeder(DBModel feederModel) {
-        String selectQuery = "SELECT  * FROM " + TABLE_FEEDER ;
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-        // looping through all rows and adding to list
-        if (cursor.moveToFirst()) {
-            do {
-
-                int primaryKey = Integer.parseInt(cursor.getString(0));
                 ContentValues values = new ContentValues();
-                values.put(KEY_TITLE, feederModel.getFeederModel().get(primaryKey-1).getTitle());
-                values.put(KEY_DESCRIPTION, feederModel.getFeederModel().get(primaryKey-1).getDescription());
-                values.put(KEY_IMAGE, feederModel.getFeederModel().get(primaryKey-1).getImageHref());
+                for (Rows dbRowModel : feederModel.getFeederModel()) {
+                    values.put(KEY_MAIN_TITLE, feederModel.getTitle());
+                    if (dbRowModel.getTitle() == null) {
+                        dbRowModel.setTitle("Title");
+                    }
+                    Cursor c = db.rawQuery("SELECT * FROM feeders WHERE feeder_title = '" + dbRowModel.getTitle() + "'", null);
+                    c.moveToFirst();
+                    if (c.getCount() == 0) {
+                        isAdded = false;
 
-                db.update(TABLE_FEEDER, values, KEY_ID + " = ?",
-                        new String[]{String.valueOf(primaryKey)});
+                    } else {
+                        isAdded = true;
+                    }
 
-            } while ((cursor.moveToNext()));
-        }
+                    values.put(KEY_TITLE, dbRowModel.getTitle()); //  Row Title
+                    values.put(KEY_DESCRIPTION, dbRowModel.getDescription()); //  Row Description
+                    values.put(KEY_IMAGE, dbRowModel.getImageHref());
+                    if (!isAdded) {
+                        db.insert(TABLE_FEEDER, null, values);
 
+                    } else {
+                        db.update(TABLE_FEEDER, values, KEY_TITLE + " = ?",
+                                new String[]{dbRowModel.getTitle()});
+                    }
+                }
+
+            return null;
+            }
+
+        }.execute(this);
     }
-
-//    Getting one feeder
-/*    public DBHandler getFeeders(int id) {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.query(TABLE_FEEDER, new String[]{KEY_ID,
-                        KEY_NAME, KEY_SH_ADDR}, KEY_ID + "=?",
-                new String[]{String.valueOf(id)}, null, null, null, null);
-        if (cursor != null)
-            cursor.moveToFirst();
-
-        DBHandler contact = new DBHandler(Integer.parseInt(cursor.getString(0)),
-                cursor.getString(1), cursor.getString(2));
-        // return shop
-        return contact;
-    }*/
-
-
     // Getting All Feeders
-    public List<DBRowModel> getAllFeederRows() {
-        List<DBRowModel> rowsList = new ArrayList<DBRowModel>();
-        // Select All Query
-        String selectQuery = "SELECT  * FROM " + TABLE_FEEDER;
+    public ArrayList<DBRowModel> getAllFeederRows() throws Exception {
 
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
-        // looping through all rows and adding to list
-        if (cursor.moveToFirst()) {
-            do {
-                DBRowModel rows = new DBRowModel();
-                rows.setTitle(cursor.getString(2));
-                rows.setDescription(cursor.getString(3));
-                rows.setImageHref(cursor.getString(4));
-                rowsList.add(rows);
-            } while (cursor.moveToNext());
-        }
-        // return row list
-        return rowsList;
-    }
-
+        return new GetDataTask().execute(this).get();
+   }
     // Getting feeder Count
     public int getRowCount() {
         String countQuery = "SELECT  * FROM " + TABLE_FEEDER;
@@ -215,24 +139,28 @@ public class DBHandler extends SQLiteOpenHelper {
         return tooldBarTitle != null ? tooldBarTitle : "About Canadaa";
     }
 
-    /*// Updating a feeders
-    public int updateFeeder(FeederModel feederModel) {
-        SQLiteDatabase db = this.getWritableDatabase();
+   @SuppressLint("StaticFieldLeak")
+    private class GetDataTask extends AsyncTask<DBHandler, Void, ArrayList<DBRowModel>> {
+        @Override
+        protected ArrayList<DBRowModel> doInBackground(DBHandler... params) {
+            ArrayList<DBRowModel> rowsList = new ArrayList<DBRowModel>();
+            String selectQuery = "SELECT  * FROM " + TABLE_FEEDER;
 
-        ContentValues values = new ContentValues();
-        values.put(KEY_MAIN_TITLE, feederModel.getTitle());
+            SQLiteDatabase db = params[0].getWritableDatabase();
+            Cursor cursor = db.rawQuery(selectQuery, null);
 
-        // updating row
-        return db.update(TABLE_FEEDER, values, KEY_MAIN_TITLE + " = ?",
-                new String[]{String.valueOf(feederModel.getTitle())});
+            if (cursor.moveToFirst()) {
+                do {
+                    DBRowModel rows = new DBRowModel();
+                    rows.setTitle(cursor.getString(2));
+                    rows.setDescription(cursor.getString(3));
+                    rows.setImageHref(cursor.getString(4));
+                    rowsList.add(rows);
+                } while (cursor.moveToNext());
+            }
+            Log.d("Sqlite","get rowsList");
+            return rowsList;
+        }
     }
-
-    // Deleting a feeder
-    public void deleteFeeder(FeederModel feederModel) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_FEEDER, KEY_MAIN_TITLE + " = ?",
-                new String[] { String.valueOf(feederModel.getTitle()) });
-        db.close();
-    }*/
 }
 

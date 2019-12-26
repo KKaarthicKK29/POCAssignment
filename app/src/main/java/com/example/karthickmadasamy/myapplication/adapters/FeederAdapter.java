@@ -1,6 +1,8 @@
 package com.example.karthickmadasamy.myapplication.adapters;
 
 import android.content.Context;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +16,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.karthickmadasamy.myapplication.sqlite.DBRowModel;
 import com.example.karthickmadasamy.myapplication.utils.SquareImageView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,14 +25,25 @@ import java.util.List;
 
 public class FeederAdapter extends RecyclerView.Adapter<FeederAdapter.FeederHolder> {
     private String TAG=FeederAdapter.this.getClass().getName();
-    private List<DBRowModel> rowsList;
+    private ArrayList<DBRowModel> rowsList;
     private Context context;
     OnItemClickListener onItemClickListener;
-    public FeederAdapter(List<DBRowModel> rowsList, Context context, OnItemClickListener onItemClickListener) {
+
+
+    public ArrayList<DBRowModel> getRowsList() {
+        return rowsList;
+    }
+
+    public void setRowsList(ArrayList<DBRowModel> rowsList) {
+        this.rowsList = rowsList;
+    }
+
+    public FeederAdapter(ArrayList<DBRowModel> rowsList, Context context, OnItemClickListener onItemClickListener) {
         this.rowsList = rowsList;
         this.context = context;
         this.onItemClickListener=onItemClickListener;
     }
+
 
     @Override
     public FeederHolder onCreateViewHolder(ViewGroup parent, int viewType) {

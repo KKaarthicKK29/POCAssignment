@@ -5,16 +5,10 @@ import android.util.Log;
 
 import com.example.karthickmadasamy.myapplication.R;
 import com.example.karthickmadasamy.myapplication.models.FeederModel;
-import com.example.karthickmadasamy.myapplication.models.Rows;
 import com.example.karthickmadasamy.myapplication.network.NetworkClient;
 import com.example.karthickmadasamy.myapplication.network.NetworkInterface;
 import com.example.karthickmadasamy.myapplication.sqlite.DBHandler;
 import com.example.karthickmadasamy.myapplication.sqlite.DBModel;
-
-
-import java.util.ArrayList;
-import java.util.List;
-
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
@@ -57,21 +51,16 @@ public class MainPresenter implements MainPresenterInterface {
 
             @Override
             public void onNext(@NonNull FeederModel feederModel) {
-                Log.d(TAG,"OnNext"+ feederModel.getRows());
-                //DB insert
-                DBHandler db = new DBHandler(ctx);
-                db.insertOrUpdateFeederRows(new DBModel(feederModel.getRows(),feederModel.getTitle()));
+                //DB insertorupdate
+                DBHandler .getInstance(ctx).insertOrUpdateFeederRows(new DBModel(feederModel.getRows(),feederModel.getTitle()));
                 mvi.displayFeeder(feederModel);
             }
-
             @Override
             public void onError(@NonNull Throwable e) {
-                Log.d(TAG,"Error"+e);
                 e.printStackTrace();
                 mvi.hideProgressBar();
                 mvi.displayError(""+ R.string.server_error_message);
             }
-
             @Override
             public void onComplete() {
                 Log.d(TAG,"Completed");
