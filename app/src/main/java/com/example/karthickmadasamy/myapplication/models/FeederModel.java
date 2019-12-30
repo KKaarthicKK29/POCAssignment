@@ -1,5 +1,6 @@
 package com.example.karthickmadasamy.myapplication.models;
 
+import com.example.karthickmadasamy.myapplication.db.FeederEntity;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -20,7 +21,7 @@ public class FeederModel {
 
     @SerializedName("rows")
     @Expose
-    private List<Rows> rows;
+    private List<FeederEntity> rows;
 
     public String getTitle() {
         return title;
@@ -30,11 +31,11 @@ public class FeederModel {
         this.title = title;
     }
 
-    public List<Rows> getRows() {
+    public List<FeederEntity> getRows() {
         return rows;
     }
 
-    public void setRows(List<Rows> rows) {
+    public void setRows(List<FeederEntity> rows) {
         this.rows = rows;
     }
 

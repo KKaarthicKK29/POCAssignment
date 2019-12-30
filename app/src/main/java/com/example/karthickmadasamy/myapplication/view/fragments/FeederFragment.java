@@ -1,7 +1,9 @@
 package com.example.karthickmadasamy.myapplication.view.fragments;
 
+import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -23,6 +25,8 @@ import com.example.karthickmadasamy.myapplication.presenter.MainPresenter;
 import com.example.karthickmadasamy.myapplication.presenter.MainViewInterface;
 import com.example.karthickmadasamy.myapplication.sqlite.DBHandler;
 import com.example.karthickmadasamy.myapplication.sqlite.DBRowModel;
+import com.example.karthickmadasamy.myapplication.viewmodel.FeederViewModel;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 //Added SwipeRefresh action to this class
@@ -42,7 +46,7 @@ import java.util.List;
 public class FeederFragment extends BaseFragment implements MainViewInterface {
     private String TAG = FeederFragment.this.getClass().getName();
 
-    private static final String FEEDER_LIST = "Feeder Adapter Data";
+    private static final String FEEDER_LIST = "FeederEntity Adapter Data";
 
 
     @BindView(R.id.feeder_view)
@@ -52,16 +56,16 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     ProgressBar progressBar;
 
     @BindView(R.id.toolbar)
-    Toolbar toolbar;
+    public Toolbar toolbar;
 
     @BindView(R.id.swipeToRefresh)
     SwipeRefreshLayout mSwipeRefreshLayout;
-
 
     FeederAdapter adapter;
     MainPresenter mainPresenter;
     private List<Rows> mRowsList;
 
+    private FeederViewModel feederViewModel;
 
     public static FeederFragment newInstance() {
         return new FeederFragment();
@@ -70,6 +74,7 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        adapter = new FeederAdapter(this.getContext());
     }
 
     @Nullable
@@ -78,79 +83,35 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
         setHasOptionsMenu(true);
         View view = inflater.inflate(R.layout.feeder_fragment, container, false);
         ButterKnife.bind(this, view);
-        mRowsList = new ArrayList<Rows>();
-        //If restoring from state, load the list from the bundle
-        if (savedInstanceState != null) {
-            ArrayList<DBRowModel> feederRows = savedInstanceState.getParcelableArrayList(FEEDER_LIST);
-            adapter = new FeederAdapter(feederRows, getActivity(), new FeederAdapter.OnItemClickListener() {
-                @Override
-                public void onClick(DBRowModel rows) {
-                    showToast(rows.getTitle());
-                }
-            });
-            newsView.setAdapter(adapter);
-        } else {
-            initView();
+        feederViewModel = ViewModelProviders.of(this).get(FeederViewModel.class);
+        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+        newsView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        newsView.setAdapter(adapter);
+
+        initMVP();
+        if(isNetworkAvailable()) {
+            mainPresenter.getRows();
         }
+        swipeRefresh();
         return view;
     }
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        if(getAdapter() !=null) {
-            outState.putParcelableArrayList(FEEDER_LIST, getAdapter().getRowsList());
-        }
-    }
-    /**
-     * initialize view
-     */
-    private void initView() {
-        initMVP();
-        if ( DBHandler.getInstance(getActivity()).getRowCount() > 0) {
-            displayDBFeeders(true);
-            hideProgressBar();
 
-        } else {
-            getFeederList();
-        }
-        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
-        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorAccent);
-        newsView.setLayoutManager(new LinearLayoutManager(getActivity()));
-
-        //SwipeRefresh function
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                getFeederList();
-                mSwipeRefreshLayout.setRefreshing(false);
-            }
-        });
-
-    }
     /**
      * initialize Model View Presenter
      */
     private void initMVP() {
         mainPresenter = new MainPresenter(this, getActivity());
     }
-    /**
-     * get news list
-     */
-    private void getFeederList() {
-        Log.d(TAG, "getFeederList");
-        if (isNetworkAvailable()) {
-            showProgressBar();
-            mainPresenter.getRows();
-        } else {
-            //showing error dialog if no network detected
-            if (adapter != null && adapter.getItemCount() > 0)
-                errorDialog(R.string.network_error_message, false);
-            else
-                errorDialog(R.string.network_error_message, true);
-        }
-
+    private void swipeRefresh() {
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.colorAccent);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                mainPresenter.getRows();
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        });
     }
-
     @Override
     public void showToast(String str) {
         Toast.makeText(getActivity(), str, Toast.LENGTH_LONG).show();
@@ -166,6 +127,11 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
         progressBar.setVisibility(View.GONE);
     }
 
+    @Override
+    public void displayFeeder(FeederModel newsResponse) {
+
+    }
+
     public FeederAdapter getAdapter() {
         return adapter;
     }
@@ -174,36 +140,7 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
         this.adapter = adapter;
     }
 
-    public void displayDBFeeders(boolean refreshUI) {
-        try {
-            DBHandler dbHandler = DBHandler.getInstance(getActivity());
-            ArrayList<DBRowModel> feederRows = dbHandler.getAllFeederRows();
-            toolbar.setTitle(dbHandler.getToolBarTitle());
-            adapter = new FeederAdapter(feederRows, getActivity(), new FeederAdapter.OnItemClickListener() {
-                @Override
-                public void onClick(DBRowModel rows) {
-                    showToast(rows.getTitle());
-                }
-            });
-            newsView.setAdapter(adapter);
-            Log.d("Feeder",feederRows.size()+"");
-            if (refreshUI) {
-                getFeederList();
-            }
-        }catch (Exception e){
 
-        }
-
-    }
-
-
-
-    @Override
-    public void displayFeeder(FeederModel feederModel) {
-        if (null != feederModel) {
-            displayDBFeeders(false);
-        }
-    }
 
     @Override
     public void displayError(String e) {
@@ -224,7 +161,7 @@ public class FeederFragment extends BaseFragment implements MainViewInterface {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.refresh) {
-            getFeederList();
+            mainPresenter.getRows();
         }
         return super.onOptionsItemSelected(item);
     }
